@@ -121,6 +121,11 @@ set -x
 
 # bootstrap
 mkdir -p "$target"
+rpm -qa | grep -i epel-release
+if [ $? -ne 0 ]  ; then
+  rpm -ivh http://ftp.riken.jp/Linux/fedora/epel/6/x86_64/epel-release-6-8.noarch.rpm 
+fi
+yum install debootstrap -y
 sudo http_proxy=$http_proxy debootstrap --verbose --variant="$variant" --include="$include" --arch="$arch" "$suite" "$target" "$mirror"
 
 cd "$target"
