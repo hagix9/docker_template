@@ -11,7 +11,6 @@ echo "$UBUNTU_USER:$UBUNTU_PASSWORD" | chroot saucy chpasswd
 
 #install packages
 chroot saucy apt-get install openssh-client openssh-server language-pack-ja telnet ftp -y
-chroot saucy apt-get clean
 
 #locale settings
 echo "ja_JP.UTF-8 UTF-8"   | chroot saucy tee -a /etc/locale.gen
@@ -43,6 +42,35 @@ script
 initctl emit filesystem
 end script
 EOF
+
+#repository settings
+cat << 'EOF' > saucy/etc/apt/sources.list
+deb http://jp.archive.ubuntu.com/ubuntu/ saucy main restricted
+deb-src http://jp.archive.ubuntu.com/ubuntu/ saucy main restricted
+deb http://jp.archive.ubuntu.com/ubuntu/ saucy-updates main restricted
+deb-src http://jp.archive.ubuntu.com/ubuntu/ saucy-updates main restricted
+deb http://jp.archive.ubuntu.com/ubuntu/ saucy universe
+deb-src http://jp.archive.ubuntu.com/ubuntu/ saucy universe
+deb http://jp.archive.ubuntu.com/ubuntu/ saucy-updates universe
+deb-src http://jp.archive.ubuntu.com/ubuntu/ saucy-updates universe
+deb http://jp.archive.ubuntu.com/ubuntu/ saucy multiverse
+deb-src http://jp.archive.ubuntu.com/ubuntu/ saucy multiverse
+deb http://jp.archive.ubuntu.com/ubuntu/ saucy-updates multiverse
+deb-src http://jp.archive.ubuntu.com/ubuntu/ saucy-updates multiverse
+deb http://jp.archive.ubuntu.com/ubuntu/ saucy-backports main restricted universe multiverse
+deb-src http://jp.archive.ubuntu.com/ubuntu/ saucy-backports main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu saucy-security main restricted
+deb-src http://security.ubuntu.com/ubuntu saucy-security main restricted
+deb http://security.ubuntu.com/ubuntu saucy-security universe
+deb-src http://security.ubuntu.com/ubuntu saucy-security universe
+deb http://security.ubuntu.com/ubuntu saucy-security multiverse
+deb-src http://security.ubuntu.com/ubuntu saucy-security multiverse
+EOF
+
+#update
+chroot saucy apt-get update
+chroot saucy apt-get dist-upgrade -y
+chroot saucy apt-get clean
 
 tar --numeric-owner -Jcpf ubuntu_1310.tar.xz -C saucy .
 \rm -rf saucy
