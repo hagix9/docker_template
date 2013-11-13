@@ -1,0 +1,52 @@
+#Precise Image create
+#precise install
+sudo debootstrap precise precise > /dev/null
+
+#useradd
+UBUNTU_USER=ubuntu
+UBUNTU_PASSWORD=ubuntu
+chroot precise useradd --create-home -s /bin/bash $UBUNTU_USER
+chroot precise adduser $UBUNTU_USER sudo
+echo "$UBUNTU_USER:$UBUNTU_PASSWORD" | chroot precise chpasswd
+
+#install packages
+chroot precise apt-get install openssh-client openssh-server language-pack-ja telnet ftp -y
+chroot precise apt-get clean
+
+#locale settings
+echo "ja_JP.UTF-8 UTF-8"   | chroot precise tee -a /etc/locale.gen
+echo "ja_JP.EUC-JP EUC-JP" | chroot precise tee -a /etc/locale.gen
+echo "ja_JP.SJIS SJIS"     | chroot precise tee -a /etc/locale.gen
+chroot precise localedef -f SHIFT_JIS -i ja_JP ja_JP.SJIS
+chroot precise /usr/sbin/locale-gen
+chroot precise update-locale LANG=ja_JP.utf8
+
+#timezone settings
+echo "Asia/Tokyo" | chroot saucy tee /etc/timezone
+chroot saucy dpkg-reconfigure -f noninteractive tzdata
+
+#ssh settings
+chroot precise dpkg-reconfigure --force openssh-server
+chroot precise mkdir /var/run/sshd
+chroot precise update-rc.d ssh defaults
+chroot precise sed -i.bak 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
+
+#init settings
+chroot precise sed -i.bak 's/(filesystem and static-network-up)/filesystem/' /etc/init/rc-sysinit.conf
+cat << 'EOF' > precise/etc/init/lxc.conf
+description "start services"
+#http://blog.udcp.net/2013/11/10/docker%E3%81%A7ubuntu%E3%81%AEsbininit%E3%82%92%E5%AE%9F%E8%A1%8C%E3%81%99%E3%82%8B/
+
+start on startup
+
+script
+initctl emit filesystem
+end script
+EOF
+
+tar --numeric-owner -Jcpf ubuntu_1204.tar.xz -C precise .
+\rm -rf precise
+
+cat ubuntu_1204.tar.xz | docker import - ubuntu1204
+docker run -i -t -d -p 11111:22 --name ubuntu01 ubuntu1204 /sbin/init
+ssh root@localhost -p 11111 #PASSWORD: root
